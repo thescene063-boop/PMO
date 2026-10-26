@@ -58,6 +58,22 @@ body{font-family:'Sarabun',sans-serif;background:var(--bg);min-height:100vh;padd
 .card-title{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:1.25rem;display:flex;align-items:center;gap:7px}
 .dot{width:6px;height:6px;border-radius:50%;background:var(--green);flex-shrink:0}
 
+/* Breakdown List */
+.debt-breakdown { display: flex; flex-direction: column; gap: 12px; font-size: 14px; }
+.breakdown-item { display: flex; justify-content: space-between; align-items: flex-start; padding-bottom: 12px; border-bottom: 1px dashed var(--border); }
+.breakdown-item:last-child { border-bottom: none; padding-bottom: 0; }
+.sub-text { font-size: 12px; color: var(--text3); margin-top: 4px; line-height: 1.4; }
+.b-amt { font-weight: 600; color: var(--text); flex-shrink: 0; margin-left: 10px; }
+
+/* Expandable Details */
+.breakdown-details { padding-bottom: 12px; border-bottom: 1px dashed var(--border); }
+.breakdown-details summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: flex-start; }
+.breakdown-details summary::-webkit-details-marker { display: none; } /* ซ่อนลูกศร default */
+.summary-content { display: flex; justify-content: space-between; width: 100%; }
+.tap-hint { display: inline-block; font-size: 11px; color: var(--green-dark); background: var(--green-bg); padding: 2px 8px; border-radius: 99px; margin-top: 4px; font-weight: 600; }
+.details-content { margin-top: 10px; padding: 10px 12px; background: #fafaf8; border-radius: 10px; display: flex; flex-direction: column; gap: 8px; border: 1px solid var(--border); }
+.sub-item { display: flex; justify-content: space-between; font-size: 13px; color: var(--text2); }
+
 /* Form */
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
 .field{display:flex;flex-direction:column;gap:5px}
@@ -97,13 +113,6 @@ input::placeholder{color:var(--text3)}
 .del-btn{background:none;border:none;cursor:pointer;color:var(--text3);padding:5px;border-radius:6px;font-size:14px;transition:all .15s}
 .del-btn:hover{color:var(--red);background:var(--red-bg)}
 
-/* Empty Entry */
-.entry-empty{
-  display:grid;grid-template-columns:82px 1fr auto;gap:10px;align-items:center;
-  padding:10px 14px;border:1px dashed var(--border);border-radius:14px;
-  margin-bottom:8px;background:#fafaf8
-}
-.entry-empty .enote { font-size:13px; color:var(--text3); font-weight:normal; }
 .loading-state { text-align:center; padding: 2rem 0; color: var(--text3); font-size: 14px; }
 .loading-icon { display: inline-block; animation: spin 1s linear infinite; margin-bottom:10px; font-size:24px; }
 @keyframes spin { 100% { transform: rotate(360deg); } }
@@ -142,17 +151,17 @@ input::placeholder{color:var(--text3)}
           <div class="av">พก</div>
           <div>
             <div class="pname">หนี้พี่โม</div>
-            <div class="psub" id="heroSub">ยอดเริ่มต้น ฿15,000</div>
+            <div class="psub" id="heroSub">ยอดเริ่มต้น ฿63,977</div>
           </div>
         </div>
         <span class="pill active" id="statusPill">กำลังชำระ</span>
       </div>
       <div class="remain-center">
         <div class="remain-label">ยอดคงเหลือ</div>
-        <div class="remain-val"><span class="thb">฿</span><span id="remainAmt">15,000</span></div>
+        <div class="remain-val"><span class="thb">฿</span><span id="remainAmt">63,977</span></div>
         <div class="bar-meta">
           <span>ชำระแล้ว <strong id="pctText">0%</strong></span>
-          <span id="paidMeta">฿0 / ฿15,000</span>
+          <span id="paidMeta">฿0 / ฿63,977</span>
         </div>
         <div class="bar-track"><div class="bar-fill" id="barFill" style="width:0%"></div></div>
       </div>
@@ -160,12 +169,71 @@ input::placeholder{color:var(--text3)}
     <div class="hero-stats">
       <div class="hstat">
         <div class="hstat-lbl">ยอดหนี้ตั้งต้น</div>
-        <div class="hstat-val red" id="totalLabel">฿15,000</div>
+        <div class="hstat-val red" id="totalLabel">฿63,977</div>
       </div>
       <div class="hstat">
         <div class="hstat-lbl">ชำระแล้วทั้งหมด</div>
         <div class="hstat-val green">฿<span id="totalPaid">0</span></div>
       </div>
+    </div>
+  </div>
+
+  <!-- Breakdown รายละเอียดหนี้ -->
+  <div class="card">
+    <div class="card-title"><span class="dot"></span>รายละเอียดหนี้ตั้งต้น (รวม ฿63,977)</div>
+    <div class="debt-breakdown">
+      
+      <div class="breakdown-item">
+        <div>เงินสดพี่ปุ้ย</div>
+        <div class="b-amt">฿6,500</div>
+      </div>
+
+      <div class="breakdown-item">
+        <div>
+          ค่าบ้าน
+          <div class="sub-text">บอสออกก่อนประกัน 20,000<br>ค่าเช่าออกก่อน 5,000</div>
+        </div>
+        <div class="b-amt">฿25,000</div>
+      </div>
+
+      <details class="breakdown-details">
+        <summary>
+          <div class="summary-content">
+            <div>
+              ค่าพี่โมย้ายออกเจวิลเลท
+              <div class="tap-hint">👆 แตะเพื่อดูรายละเอียด</div>
+            </div>
+            <div class="b-amt">฿11,307</div>
+          </div>
+        </summary>
+        <div class="details-content">
+          <div class="sub-item"><span>- ค่าขนส่ง</span><span>฿980</span></div>
+          <div class="sub-item"><span>- ค่า shopee</span><span>฿991</span></div>
+          <div class="sub-item"><span>- ค่าเน็ตเจวิลเลท</span><span>฿1,800</span></div>
+          <div class="sub-item"><span>- ค่าขนส่ง jt</span><span>฿4,000</span></div>
+          <div class="sub-item"><span>- ค่า shopee ดิป</span><span>฿2,539</span></div>
+          <div class="sub-item"><span>- ค่าเสื้อของพี่</span><span>฿997</span></div>
+        </div>
+      </details>
+
+      <div class="breakdown-item">
+        <div>เงินสดออมที่บอสออกก่อน</div>
+        <div class="b-amt">฿3,150</div>
+      </div>
+
+      <div class="breakdown-item">
+        <div>ค่าไฟบ้านดิอัลบานี</div>
+        <div class="b-amt">฿3,020</div>
+      </div>
+
+      <div class="breakdown-item">
+        <div>
+          ค่าปิดจบธนาคาร + คืนประกันมอไซ
+          <div class="sub-text">ชำระมาแล้ว 8,850 บาท</div>
+        </div>
+        <div class="b-amt">฿15,000</div>
+      </div>
+
     </div>
   </div>
 
@@ -185,7 +253,7 @@ input::placeholder{color:var(--text3)}
 
   <!-- History -->
   <div class="card">
-    <div class="card-title"><span class="dot"></span>ประวัติแบบรายวัน (ตั้งแต่ 25 มิ.ย. 69)</div>
+    <div class="card-title"><span class="dot"></span>ประวัติการชำระเงิน</div>
     <div id="entriesList" class="history-scroll">
       <div class="loading-state">
         <div class="loading-icon">⏳</div>
@@ -203,7 +271,7 @@ input::placeholder{color:var(--text3)}
         คัดลอกลิงก์เว็บ
       </button>
       <button class="btn-share" onclick="window.print()">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
         พิมพ์ / PDF
       </button>
     </div>
@@ -219,7 +287,8 @@ input::placeholder{color:var(--text3)}
 <script>
 const API_URL = "https://script.google.com/macros/s/AKfycbxTl-6-6QeiPyQUdkqk2nIh6Z8HlJ_QYLjKJAN48mfECttuxyjkoA4qQ1ZaG1gC-3U-aQ/exec"; 
 
-const TOTAL = 15000;
+// อัปเดตยอดรวมใหม่เป็น 63,977 (ยอดหนี้ดิบก่อนหัก)
+const TOTAL = 63977;
 const fmt   = n => Number(n).toLocaleString('th-TH');
 let globalEntries = []; 
 
@@ -265,70 +334,42 @@ function updateStats(entries, total){
 function renderList(entries, total){
   const el = document.getElementById('entriesList');
 
-  // เริ่ม 25 มิ.ย. 69
-  let startD = new Date(2026, 5, 25);
-  let endD = new Date(); 
-
-  entries.forEach(e => {
-    const ed = new Date(e.date);
-    if(ed < startD) startD = ed;
-    if(ed > endD) endD = ed;
-  });
-
-  const allDates = [];
-  let curr = new Date(startD);
-  curr.setHours(0,0,0,0);
-  endD.setHours(0,0,0,0);
-
-  while(curr <= endD) {
-    allDates.push(new Date(curr));
-    curr.setDate(curr.getDate() + 1);
+  // ถ้ายังไม่มีรายการเลย
+  if(entries.length === 0) {
+    el.innerHTML = `<div class="loading-state">ไม่มีรายการชำระเงิน</div>`;
+    return;
   }
 
-  const entryMap = {};
-  entries.forEach(e => {
-    if(!entryMap[e.date]) entryMap[e.date] = [];
-    entryMap[e.date].push(e);
-  });
+  // เรียงวันที่จากเก่าไปใหม่ เพื่อให้ยอดคงเหลือหักลบได้ถูกต้องตามลำดับเวลา
+  const sorted = [...entries].sort((a,b) => new Date(a.date) - new Date(b.date));
 
   let runningPaid = 0;
   let html = '';
 
-  allDates.forEach(d => {
-    const dStr = getLocalYMD(d);
-    const dayEntries = entryMap[dStr] || [];
-
-    if(dayEntries.length > 0) {
-      dayEntries.forEach(e => {
-        runningPaid += e.amount;
-        const remain = Math.max(0, total - runningPaid);
-        // ถ้าเป็นโหมด View-Only จะซ่อนปุ่มลบทิ้ง
-        const delBtn = isViewMode ? '' : `<button class="del-btn" onclick="del('${e.id}')" title="ลบ">✕</button>`;
-        
-        html += `<div class="entry-item">
-          <div class="entry-main">
-            <div class="edate">${thDate(e.date)}</div>
-            <div>
-              <div class="enote">${e.note||'ชำระหนี้'}</div>
-              <div class="ebal">คงเหลือ ฿${fmt(remain)}</div>
-            </div>
-            <div class="eamt">+฿${fmt(e.amount)}</div>
-            ${delBtn}
-          </div>
-        </div>`;
-      });
-    } else {
-      const remain = Math.max(0, total - runningPaid);
-      html += `<div class="entry-empty">
-        <div class="edate">${thDate(dStr)}</div>
-        <div class="enote">- ไม่มีรายการ -</div>
-        <div class="ebal">คงเหลือ ฿${fmt(remain)}</div>
-      </div>`;
-    }
+  // ลูปแสดงเฉพาะรายการที่มีอยู่จริง (ไม่แสดงวันที่ว่าง)
+  sorted.forEach(e => {
+    runningPaid += e.amount;
+    const remain = Math.max(0, total - runningPaid);
+    
+    // ถ้าเป็นโหมด View-Only จะซ่อนปุ่มลบทิ้ง
+    const delBtn = isViewMode ? '' : `<button class="del-btn" onclick="del('${e.id}')" title="ลบ">✕</button>`;
+    
+    html += `<div class="entry-item">
+      <div class="entry-main">
+        <div class="edate">${thDate(e.date)}</div>
+        <div>
+          <div class="enote">${e.note||'ชำระหนี้'}</div>
+          <div class="ebal">คงเหลือ ฿${fmt(remain)}</div>
+        </div>
+        <div class="eamt">+฿${fmt(e.amount)}</div>
+        ${delBtn}
+      </div>
+    </div>`;
   });
 
   el.innerHTML = html;
   
+  // เลื่อนหน้าจอลงไปบรรทัดล่าสุด
   setTimeout(() => {
     el.scrollTop = el.scrollHeight;
   }, 50);
