@@ -297,11 +297,11 @@ input::placeholder{color:var(--text3)}
 <div class="toast" id="toast"></div>
 
 <script>
-// ใส่ URL ของ Web App ตรงนี้ (อย่าลืมเปลี่ยนหลัง Deploy ใหม่ด้วยนะครับ)
-const API_URL = "https://script.google.com/macros/s/AKfycbxePsDPVokNSsFEkSrID9ssbwqhNC2NcfkDLRiK7K6P1rj51D-3ksOYe1Dr20fIF3kkKw/exec"; 
+// ใส่ URL ของ Web App ตรงนี้
+const API_URL = "https://script.google.com/macros/s/AKfycbyGCqtFwnrSnmLLfw0-s_tqQt1BpNwNVkkKY_Z1BmwILHpy66P8WgUPf907p_qXKNYWEA/exec"; 
 
 const TOTAL = 63977;
-const fmt   = n => Number(n).toLocaleString('th-TH');
+const fmt   = n => Number(n || 0).toLocaleString('th-TH');
 let globalEntries = []; 
 
 let isViewMode = false;
@@ -316,9 +316,17 @@ function checkViewMode() {
 }
 
 function thDate(str){
-  const d = new Date(str+'T00:00:00');
+  if(!str) return '-';
+  const cleanStr = String(str).substring(0, 10); // ตัดเอาเฉพาะ YYYY-MM-DD ป้องกันบั๊ก NaN
+  const parts = cleanStr.split('-');
+  if(parts.length === 3) {
+    return `${parts[2]}/${parts[1]}/${parseInt(parts[0], 10) + 543}`;
+  }
+  const d = new Date(str);
+  if(isNaN(d)) return str;
   return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()+543}`;
 }
+
 function getLocalYMD(d) {
   const y = d.getFullYear();
   const m = String(d.getMonth()+1).padStart(2, '0');
@@ -327,7 +335,7 @@ function getLocalYMD(d) {
 }
 
 function updateStats(entries, total){
-  const paid    = entries.reduce((s,e)=>s+e.amount, 0);
+  const paid    = entries.reduce((s,e)=> s + (Number(e.amount) || 0), 0);
   const remain  = Math.max(0, total - paid);
   const pct     = Math.min(100, Math.round(paid/total*100));
   document.getElementById('remainAmt').textContent = fmt(remain);
@@ -344,7 +352,7 @@ function updateStats(entries, total){
 
 function renderList(entries, total){
   const el = document.getElementById('entriesList');
-  if(entries.length === 0) {
+  if(!Array.isArray(entries) || entries.length === 0) {
     el.innerHTML = `<div class="loading-state">ไม่มีรายการชำระเงิน</div>`;
     return;
   }
@@ -353,7 +361,8 @@ function renderList(entries, total){
   let html = '';
 
   sorted.forEach(e => {
-    runningPaid += e.amount;
+    const amt = Number(e.amount) || 0;
+    runningPaid += amt;
     const remain = Math.max(0, total - runningPaid);
     const delBtn = isViewMode ? '' : `<button class="del-btn" onclick="del('${e.id}')" title="ลบ">✕</button>`;
     
@@ -364,7 +373,7 @@ function renderList(entries, total){
           <div class="enote">${e.note||'ชำระหนี้'}</div>
           <div class="ebal">คงเหลือ ฿${fmt(remain)}</div>
         </div>
-        <div class="eamt">+฿${fmt(e.amount)}</div>
+        <div class="eamt">+฿${fmt(amt)}</div>
         ${delBtn}
       </div>
     </div>`;
@@ -381,11 +390,17 @@ async function loadData() {
   }
   try {
     const res = await fetch(API_URL);
-    globalEntries = await res.json();
+    const data = await res.json();
+    if(data.error) {
+      document.getElementById('entriesList').innerHTML = `<div class="loading-state">❌ ${data.error}</div>`;
+      return;
+    }
+    globalEntries = Array.isArray(data) ? data : [];
     updateStats(globalEntries, TOTAL);
     renderList(globalEntries, TOTAL);
   } catch (err) {
     toast('ดึงข้อมูลล้มเหลว');
+    document.getElementById('entriesList').innerHTML = `<div class="loading-state">❌ ไม่สามารถเชื่อมต่อฐานข้อมูลได้</div>`;
   }
 }
 
@@ -400,7 +415,8 @@ function scanSlip(e) {
     img.onload = function() {
       const canvas = document.getElementById('canvas');
       const context = canvas.getContext('2d');
-      canvas.width = img.width; canvas.height = img.height;
+      canvas.width = img.width;
+      canvas.height = img.height;
       context.drawImage(img, 0, 0, canvas.width, canvas.height);
       const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
       const code = jsQR(imageData.data, imageData.width, imageData.height);
@@ -408,6 +424,7 @@ function scanSlip(e) {
         document.getElementById('fQr').value = code.data;
         toast('สแกนสำเร็จ กดบันทึกเพื่อตรวจสอบยอดกับธนาคาร');
       } else {
+        document.getElementById('fQr').value = '';
         toast('❌ ไม่พบ QR Code บนรูปภาพ');
       }
     };
@@ -423,7 +440,8 @@ function addEntry(){
   const n = document.getElementById('fNote').value.trim();
   const qr = document.getElementById('fQr') ? document.getElementById('fQr').value : ""; 
 
-  if(!d){ toast('เลือกวันที่ก่อน'); return }
+  if(!d){ toast('เลือกวันที่ก่อน'); return; }
+  if(!qr && a <= 0){ toast('กรุณากรอกจำนวนเงิน หรือแนบสลิป'); return; }
   
   toast('กำลังตรวจสอบและบันทึก...');
   const newId = Date.now().toString();
@@ -436,13 +454,14 @@ function addEntry(){
       if(data.error) {
          toast('❌ ' + data.error); 
       } else {
-         toast('บันทึกเรียบร้อย ยอด ' + data.amount + ' ฿ ✓');
+         const finalAmount = Number(data.amount) || a;
+         toast('บันทึกเรียบร้อย ยอด ' + fmt(finalAmount) + ' ฿ ✓');
          document.getElementById('fAmt').value = '';
          document.getElementById('fNote').value = '';
          document.getElementById('fSlip').value = '';
          if(document.getElementById('fQr')) document.getElementById('fQr').value = '';
          
-         globalEntries.push({ id: newId, date: d, amount: data.amount, note: n });
+         globalEntries.push({ id: newId, date: d, amount: finalAmount, note: n });
          updateStats(globalEntries, TOTAL);
          renderList(globalEntries, TOTAL);
       }
@@ -453,11 +472,11 @@ function addEntry(){
 function del(id){
   if(!confirm('ลบรายการนี้ออกจากฐานข้อมูล?')) return;
   toast('กำลังลบ...');
-  globalEntries = globalEntries.filter(e => e.id !== id);
+  globalEntries = globalEntries.filter(e => String(e.id) !== String(id));
   updateStats(globalEntries, TOTAL);
   renderList(globalEntries, TOTAL);
 
-  const url = `${API_URL}?action=delete&id=${id}`;
+  const url = `${API_URL}?action=delete&id=${encodeURIComponent(id)}`;
   fetch(url).then(() => toast('ลบออกจากคลาวด์แล้ว')).catch(() => toast('เครือข่ายขัดข้อง'));
 }
 
@@ -476,7 +495,7 @@ function toast(msg){
 }
 
 checkViewMode();
-document.getElementById('fDate').value = new Date().toISOString().split('T')[0];
+document.getElementById('fDate').value = getLocalYMD(new Date());
 loadData();
 </script>
 </body>
