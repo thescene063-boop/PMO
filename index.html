@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ติดตามหนี้ — พี่โม</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -12,16 +13,18 @@
   --text:#18181a;--text2:#6b6b68;--text3:#a8a8a4;
   --green:#0f9b6e;--green-bg:#e6f7f1;--green-dark:#0a7a57;
   --red:#d04040;--red-bg:#fdf0f0;--gold:#9a7200;--gold-bg:#fdf6e0;
+  --blue-bg:#e0f2fe; --blue-dark:#0369a1; --blue-border:#bae6fd;
 }
 body{font-family:'Sarabun',sans-serif;background:var(--bg);min-height:100vh;padding:2rem 1rem;color:var(--text)}
 .app{max-width:560px;margin:0 auto}
 
 .view-banner{
-  background:var(--green-bg);border:1px solid #a0dac4;border-radius:14px;
-  padding:12px 16px;margin-bottom:16px;display:none;
-  align-items:center;gap:10px;font-size:13px;color:var(--green-dark);font-weight:600
+  border-radius:14px; padding:12px 16px; margin-bottom:16px; display:none;
+  align-items:center; gap:10px; font-size:13px; font-weight:600;
 }
 .view-banner.on{display:flex}
+.banner-view { background:var(--green-bg); border:1px solid #a0dac4; color:var(--green-dark); }
+.banner-pay { background:var(--blue-bg); border:1px solid var(--blue-border); color:var(--blue-dark); }
 
 /* Hero */
 .hero{background:var(--card);border-radius:20px;border:1px solid var(--border);overflow:hidden;margin-bottom:16px}
@@ -68,7 +71,7 @@ body{font-family:'Sarabun',sans-serif;background:var(--bg);min-height:100vh;padd
 /* Expandable Details */
 .breakdown-details { padding-bottom: 12px; border-bottom: 1px dashed var(--border); }
 .breakdown-details summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: flex-start; }
-.breakdown-details summary::-webkit-details-marker { display: none; } /* ซ่อนลูกศร default */
+.breakdown-details summary::-webkit-details-marker { display: none; } 
 .summary-content { display: flex; justify-content: space-between; width: 100%; }
 .tap-hint { display: inline-block; font-size: 11px; color: var(--green-dark); background: var(--green-bg); padding: 2px 8px; border-radius: 99px; margin-top: 4px; font-weight: 600; }
 .details-content { margin-top: 10px; padding: 10px 12px; background: #fafaf8; border-radius: 10px; display: flex; flex-direction: column; gap: 8px; border: 1px solid var(--border); }
@@ -78,7 +81,7 @@ body{font-family:'Sarabun',sans-serif;background:var(--bg);min-height:100vh;padd
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
 .field{display:flex;flex-direction:column;gap:5px}
 .field label{font-size:12px;font-weight:600;color:var(--text2)}
-input[type=date],input[type=number],input[type=text]{
+input[type=date],input[type=number],input[type=text],input[type=file]{
   width:100%;padding:11px 13px;font-size:14px;font-family:'Sarabun',sans-serif;
   border:1px solid var(--border2);border-radius:10px;background:#fafaf7;color:var(--text);transition:all .2s
 }
@@ -138,10 +141,16 @@ input::placeholder{color:var(--text3)}
 <body>
 <div class="app">
 
-  <!-- ป้าย View Banner (จะโผล่มาตอนคนอื่นเปิดลิงก์แบบดูอย่างเดียว) -->
-  <div class="view-banner" id="viewBanner">
+  <!-- ป้ายโหมดดูอย่างเดียว (View Mode) -->
+  <div class="view-banner banner-view" id="viewBanner">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-    โหมดดูอย่างเดียว — ไม่สามารถแก้ไขรายการได้
+    โหมดดูอย่างเดียว — ไม่สามารถแก้ไขหรือเพิ่มรายการได้
+  </div>
+
+  <!-- ป้ายโหมดแจ้งชำระเงิน (Pay Mode) -->
+  <div class="view-banner banner-pay" id="payBanner">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+    โหมดแจ้งชำระเงิน — คุณสามารถแนบสลิปได้ แต่ลบประวัติไม่ได้
   </div>
 
   <div class="hero">
@@ -207,12 +216,12 @@ input::placeholder{color:var(--text3)}
           </div>
         </summary>
         <div class="details-content">
-          <div class="sub-item"><span>- ค่าขนส่ง</span><span>฿980</span></div>
-          <div class="sub-item"><span>- ค่า shopee</span><span>฿991</span></div>
-          <div class="sub-item"><span>- ค่าเน็ตเจวิลเลท</span><span>฿1,800</span></div>
-          <div class="sub-item"><span>- ค่าขนส่ง jt</span><span>฿4,000</span></div>
-          <div class="sub-item"><span>- ค่า shopee ดิป</span><span>฿2,539</span></div>
-          <div class="sub-item"><span>- ค่าเสื้อของพี่</span><span>฿997</span></div>
+          <div class="sub-item"><span>ค่าขนส่ง</span><span>฿980</span></div>
+          <div class="sub-item"><span>ค่า shopee</span><span>฿991</span></div>
+          <div class="sub-item"><span>ค่าเน็ตเจวิลเลท</span><span>฿1,800</span></div>
+          <div class="sub-item"><span>ค่าขนส่ง jt</span><span>฿4,000</span></div>
+          <div class="sub-item"><span>ค่า shopee ดิป</span><span>฿2,539</span></div>
+          <div class="sub-item"><span>ค่าเสื้อของพี่</span><span>฿997</span></div>
         </div>
       </details>
 
@@ -237,14 +246,24 @@ input::placeholder{color:var(--text3)}
     </div>
   </div>
 
-  <!-- Form -->
+  <!-- Form (อัปเดตสำหรับแนบสลิป) -->
   <div class="card no-print" id="formCard">
-    <div class="card-title"><span class="dot"></span>บันทึกการชำระ</div>
+    <div class="card-title"><span class="dot"></span>บันทึกและแนบสลิปชำระเงิน</div>
+    
+    <div class="field" style="margin-bottom:12px;">
+      <label>แนบรูปสลิปโอนเงิน (เพื่อตรวจสอบอัตโนมัติ)</label>
+      <input type="file" id="fSlip" accept="image/*" onchange="scanSlip(event)" style="background:#fff;">
+      <canvas id="canvas" style="display:none;"></canvas>
+    </div>
+
     <div class="form-grid">
       <div class="field"><label>วันที่</label><input type="date" id="fDate"></div>
-      <div class="field"><label>จำนวน (฿)</label><input type="number" id="fAmt" placeholder="300" min="1"></div>
+      <div class="field"><label>จำนวน (฿)</label><input type="number" id="fAmt" placeholder="รอสแกนสลิป หรือกรอกเอง"></div>
     </div>
-    <div class="field"><label>หมายเหตุ</label><input type="text" id="fNote" placeholder="โอน PromptPay / เงินสด"></div>
+
+    <input type="hidden" id="fQr">
+
+    <div class="field" style="margin-top:10px;"><label>หมายเหตุ</label><input type="text" id="fNote" placeholder="เช่น โอน PromptPay"></div>
     <button class="btn-primary" onclick="addEntry()">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       บันทึกไปที่คลาวด์
@@ -264,19 +283,19 @@ input::placeholder{color:var(--text3)}
 
   <!-- Share -->
   <div class="card no-print" id="shareCard">
-    <div class="card-title"><span class="dot"></span>แชร์ให้พี่ดู</div>
+    <div class="card-title"><span class="dot"></span>ส่งลิงก์ให้คนอื่น</div>
     <div class="share-grid">
-      <button class="btn-share" onclick="copyShareLink()">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-        คัดลอกลิงก์เว็บ
+      <button class="btn-share" onclick="copyLink('pay')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        ลิงก์ให้พี่โอน
       </button>
-      <button class="btn-share" onclick="window.print()">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-        พิมพ์ / PDF
+      <button class="btn-share" onclick="copyLink('view')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        ลิงก์ดูอย่างเดียว
       </button>
     </div>
     <p class="share-note">
-      ลิงก์ที่แชร์จะเป็นโหมด "ดูได้อย่างเดียว" ปลอดภัยแน่นอน
+      ส่งลิงก์ <b>"ให้พี่โอน"</b> เพื่อให้พี่โมกรอกสลิปได้ (แต่ลบประวัติไม่ได้)
     </p>
   </div>
 
@@ -285,23 +304,36 @@ input::placeholder{color:var(--text3)}
 <div class="toast" id="toast"></div>
 
 <script>
+// ใส่ URL ของ Web App ตรงนี้ (อย่าลืมเปลี่ยนหลัง Deploy ใหม่ด้วยนะครับ)
 const API_URL = "https://script.google.com/macros/s/AKfycbxTl-6-6QeiPyQUdkqk2nIh6Z8HlJ_QYLjKJAN48mfECttuxyjkoA4qQ1ZaG1gC-3U-aQ/exec"; 
 
-// อัปเดตยอดรวมใหม่เป็น 63,977 (ยอดหนี้ดิบก่อนหัก)
 const TOTAL = 63977;
 const fmt   = n => Number(n).toLocaleString('th-TH');
 let globalEntries = []; 
 
-// เช็คว่าหน้าเว็บนี้ถูกเปิดแบบ "ดูอย่างเดียว" หรือไม่
-let isViewMode = false;
+// ตั้งค่าสิทธิ์การเข้าถึง
+let canEdit = true;   // สิทธิ์กดลบประวัติ
+let canSubmit = true; // สิทธิ์ส่งฟอร์มสลิป
+
 function checkViewMode() {
   const urlParams = new URLSearchParams(window.location.search);
+  
+  // 1. โหมดดูอย่างเดียว (View Only)
   if(urlParams.get('view') === '1' || window.location.hash === '#view') {
-    isViewMode = true;
+    canEdit = false;
+    canSubmit = false;
     document.getElementById('formCard').style.display = 'none';
-    document.getElementById('shareCard').style.display = 'none';
+    document.getElementById('shareCard').style.display = 'none'; // ซ่อนการ์ดแชร์ไม่ให้คนอื่นก๊อปต่อ
     document.getElementById('viewBanner').classList.add('on');
+  } 
+  // 2. โหมดให้พี่โมกรอก (Pay Mode)
+  else if (urlParams.get('pay') === '1' || window.location.hash === '#pay') {
+    canEdit = false;
+    canSubmit = true;
+    document.getElementById('shareCard').style.display = 'none'; // ซ่อนการ์ดแชร์ไม่ให้พี่โมก๊อปต่อ
+    document.getElementById('payBanner').classList.add('on');
   }
+  // 3. ถ้าไม่มีพารามิเตอร์เลย = Admin (แก้ไขและลบได้ทุกอย่าง)
 }
 
 function thDate(str){
@@ -333,26 +365,20 @@ function updateStats(entries, total){
 
 function renderList(entries, total){
   const el = document.getElementById('entriesList');
-
-  // ถ้ายังไม่มีรายการเลย
   if(entries.length === 0) {
     el.innerHTML = `<div class="loading-state">ไม่มีรายการชำระเงิน</div>`;
     return;
   }
-
-  // เรียงวันที่จากเก่าไปใหม่ เพื่อให้ยอดคงเหลือหักลบได้ถูกต้องตามลำดับเวลา
   const sorted = [...entries].sort((a,b) => new Date(a.date) - new Date(b.date));
-
   let runningPaid = 0;
   let html = '';
 
-  // ลูปแสดงเฉพาะรายการที่มีอยู่จริง (ไม่แสดงวันที่ว่าง)
   sorted.forEach(e => {
     runningPaid += e.amount;
     const remain = Math.max(0, total - runningPaid);
     
-    // ถ้าเป็นโหมด View-Only จะซ่อนปุ่มลบทิ้ง
-    const delBtn = isViewMode ? '' : `<button class="del-btn" onclick="del('${e.id}')" title="ลบ">✕</button>`;
+    // แสดงปุ่มลบ เฉพาะตอนที่เป็นโหมด Admin (canEdit = true)
+    const delBtn = canEdit ? `<button class="del-btn" onclick="del('${e.id}')" title="ลบ">✕</button>` : '';
     
     html += `<div class="entry-item">
       <div class="entry-main">
@@ -368,20 +394,14 @@ function renderList(entries, total){
   });
 
   el.innerHTML = html;
-  
-  // เลื่อนหน้าจอลงไปบรรทัดล่าสุด
-  setTimeout(() => {
-    el.scrollTop = el.scrollHeight;
-  }, 50);
+  setTimeout(() => { el.scrollTop = el.scrollHeight; }, 50);
 }
 
-// 🌐 ฟังก์ชันสำหรับโหลดข้อมูลจาก Google Sheets
 async function loadData() {
-  if(!API_URL || API_URL === "เอา_URL_ที่ได้จาก_APPS_SCRIPT_มาใส่ตรงนี้"){
+  if(!API_URL){
     document.getElementById('entriesList').innerHTML = `<div class="loading-state">❌ กรุณาตั้งค่า API_URL ก่อนใช้งาน</div>`;
     return;
   }
-  
   try {
     const res = await fetch(API_URL);
     globalEntries = await res.json();
@@ -392,34 +412,70 @@ async function loadData() {
   }
 }
 
-// 🌐 ฟังก์ชันสำหรับบันทึกข้อมูลไปที่ Google Sheets
-function addEntry(){
-  const d = document.getElementById('fDate').value;
-  const a = parseFloat(document.getElementById('fAmt').value);
-  const n = document.getElementById('fNote').value.trim();
-  if(!d){ toast('เลือกวันที่ก่อน'); return }
-  if(!a||a<=0){ toast('ใส่จำนวนเงิน'); return }
-  
-  toast('กำลังบันทึก...');
-  const newId = Date.now().toString();
-  
-  globalEntries.push({ id: newId, date: d, amount: a, note: n });
-  updateStats(globalEntries, TOTAL);
-  renderList(globalEntries, TOTAL);
-
-  document.getElementById('fAmt').value = '';
-  document.getElementById('fNote').value = '';
-
-  const url = `${API_URL}?action=add&id=${newId}&date=${d}&amount=${a}&note=${encodeURIComponent(n)}`;
-  fetch(url).then(() => toast('บันทึกไปที่คลาวด์แล้ว ✓')).catch(() => toast('เครือข่ายขัดข้อง'));
+// 🌐 ฟังก์ชันอ่าน QR จากรูปภาพสลิป
+function scanSlip(e) {
+  const file = e.target.files[0];
+  if(!file) return;
+  toast('กำลังสแกน QR Code...');
+  const reader = new FileReader();
+  reader.onload = function(event) {
+    const img = new Image();
+    img.onload = function() {
+      const canvas = document.getElementById('canvas');
+      const context = canvas.getContext('2d');
+      canvas.width = img.width; canvas.height = img.height;
+      context.drawImage(img, 0, 0, canvas.width, canvas.height);
+      const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+      const code = jsQR(imageData.data, imageData.width, imageData.height);
+      if (code) {
+        document.getElementById('fQr').value = code.data;
+        toast('สแกนสำเร็จ กดบันทึกเพื่อตรวจสอบยอดกับธนาคาร');
+      } else {
+        toast('❌ ไม่พบ QR Code บนรูปภาพ');
+      }
+    };
+    img.src = event.target.result;
+  };
+  reader.readAsDataURL(file);
 }
 
-// 🌐 ฟังก์ชันลบข้อมูลออกจาก Google Sheets
+// 🌐 ฟังก์ชันบันทึกและตรวจสอบ
+function addEntry(){
+  const d = document.getElementById('fDate').value;
+  const a = parseFloat(document.getElementById('fAmt').value) || 0; 
+  const n = document.getElementById('fNote').value.trim();
+  const qr = document.getElementById('fQr') ? document.getElementById('fQr').value : ""; 
+
+  if(!d){ toast('เลือกวันที่ก่อน'); return }
+  
+  toast('กำลังตรวจสอบและบันทึก...');
+  const newId = Date.now().toString();
+  
+  const url = `${API_URL}?action=add&id=${newId}&date=${d}&amount=${a}&note=${encodeURIComponent(n)}&qr=${encodeURIComponent(qr)}`;
+  
+  fetch(url)
+    .then(res => res.json())
+    .then(data => {
+      if(data.error) {
+         toast('❌ ' + data.error); 
+      } else {
+         toast('บันทึกเรียบร้อย ยอด ' + data.amount + ' ฿ ✓');
+         document.getElementById('fAmt').value = '';
+         document.getElementById('fNote').value = '';
+         document.getElementById('fSlip').value = '';
+         if(document.getElementById('fQr')) document.getElementById('fQr').value = '';
+         
+         globalEntries.push({ id: newId, date: d, amount: data.amount, note: n });
+         updateStats(globalEntries, TOTAL);
+         renderList(globalEntries, TOTAL);
+      }
+    })
+    .catch(() => toast('เครือข่ายขัดข้อง/URL ไม่ถูกต้อง'));
+}
+
 function del(id){
   if(!confirm('ลบรายการนี้ออกจากฐานข้อมูล?')) return;
-  
   toast('กำลังลบ...');
-  
   globalEntries = globalEntries.filter(e => e.id !== id);
   updateStats(globalEntries, TOTAL);
   renderList(globalEntries, TOTAL);
@@ -428,13 +484,15 @@ function del(id){
   fetch(url).then(() => toast('ลบออกจากคลาวด์แล้ว')).catch(() => toast('เครือข่ายขัดข้อง'));
 }
 
-// แก้ไขฟังก์ชันแชร์ลิงก์ ให้เพิ่ม ?view=1 ต่อท้ายเสมอ
-function copyShareLink(){
-  // เอาเฉพาะลิงก์เว็บหลัก ไม่เอาพารามิเตอร์เก่า
+// คัดลอกลิงก์ตามโหมดที่เลือก
+function copyLink(mode){
   const base = window.location.href.split('?')[0].split('#')[0];
-  const url = base + '?view=1'; // เพิ่มรหัสสำหรับ View Only
+  const url = base + '?' + mode + '=1'; 
+  
+  let msg = mode === 'pay' ? 'คัดลอกลิงก์ให้พี่โอนแล้ว 🔗' : 'คัดลอกลิงก์ดูอย่างเดียวแล้ว 🔗';
+  
   navigator.clipboard.writeText(url)
-    .then(()=> toast('คัดลอกลิงก์ (โหมดดูอย่างเดียว) 🔗'))
+    .then(()=> toast(msg))
     .catch(()=> prompt('คัดลอกลิงก์:', url));
 }
 
@@ -444,7 +502,7 @@ function toast(msg){
   setTimeout(()=>t.classList.remove('on'), 2500);
 }
 
-// --- เริ่มทำงาน ---
+// ตรวจสอบโหมดตอนโหลดหน้าเว็บ
 checkViewMode();
 document.getElementById('fDate').value = new Date().toISOString().split('T')[0];
 loadData();
