@@ -171,7 +171,7 @@ input::placeholder{color:var(--text3)}
 
   <div class="view-banner" id="viewBanner">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-    โหมดดูอย่างเดียว — ไม่สามารถแก้ไขรายการได้
+    <span id="bannerText">โหมดดูอย่างเดียว — ไม่สามารถแก้ไขรายการได้</span>
   </div>
 
   <div class="hero">
@@ -302,17 +302,21 @@ input::placeholder{color:var(--text3)}
   <div class="card no-print" id="shareCard">
     <div class="card-title"><span class="dot"></span>แชร์ให้พี่ดู</div>
     <div class="share-grid">
+      <button class="btn-share" onclick="copyPayLink()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        ลิงก์ให้พี่ส่งสลิป (?pay=1)
+      </button>
       <button class="btn-share" onclick="copyShareLink()">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-        คัดลอกลิงก์เว็บ
-      </button>
-      <button class="btn-share" onclick="window.print()">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-        พิมพ์ / PDF
+        ลิงก์ดูอย่างเดียว (?view=1)
       </button>
     </div>
+    <button class="btn-share" style="width:100%;margin-top:8px;" onclick="window.print()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+      พิมพ์ / บันทึกเป็น PDF
+    </button>
     <p class="share-note">
-      ลิงก์ที่แชร์จะเป็นโหมด "ดูได้อย่างเดียว" ปลอดภัยแน่นอน
+      ทั้งโหมด <strong>?pay=1</strong> และ <strong>?view=1</strong> จะไม่สามารถกดลบรายการชำระเงินได้
     </p>
   </div>
 
@@ -339,6 +343,7 @@ const TOTAL = 63977;
 const fmt   = n => Number(n || 0).toLocaleString('th-TH');
 let globalEntries = []; 
 let isViewMode = false;
+let isPayMode  = false;
 
 function checkViewMode() {
   const urlParams = new URLSearchParams(window.location.search);
@@ -346,6 +351,12 @@ function checkViewMode() {
     isViewMode = true;
     document.getElementById('formCard').style.display = 'none';
     document.getElementById('shareCard').style.display = 'none';
+    document.getElementById('bannerText').textContent = 'โหมดดูอย่างเดียว — ไม่สามารถแก้ไขหรือลบรายการได้';
+    document.getElementById('viewBanner').classList.add('on');
+  } else if(urlParams.get('pay') === '1' || window.location.hash === '#pay') {
+    isPayMode = true;
+    document.getElementById('shareCard').style.display = 'none';
+    document.getElementById('bannerText').textContent = 'โหมดแจ้งชำระเงิน — แนบสลิปเพื่อบันทึกยอด (ไม่สามารถลบรายการได้)';
     document.getElementById('viewBanner').classList.add('on');
   }
 }
@@ -406,7 +417,8 @@ function renderList(entries, total){
     const amt = Number(e.amount) || 0;
     runningPaid += amt;
     const remain = Math.max(0, total - runningPaid);
-    const delBtn = isViewMode ? '' : `<button class="del-btn" onclick="del('${e.id}')" title="ลบ">✕</button>`;
+    // ซ่อนปุ่มลบ (✕) ทั้งในโหมด ?view=1 และ ?pay=1
+    const delBtn = (isViewMode || isPayMode) ? '' : `<button class="del-btn" onclick="del('${e.id}')" title="ลบ">✕</button>`;
     const slipBtn = e.slipImg ? `<button class="slip-btn" onclick="viewSlip('${e.id}')">🖼️ ดูสลิป</button>` : '';
     
     html += `<div class="entry-item">
@@ -510,7 +522,7 @@ function scanSlip(e) {
         document.getElementById('fSlipImg').value = '';
         statusEl.className = 'slip-status err';
         statusEl.textContent = '❌ ไม่พบ QR Code บนรูปภาพ กรุณาใช้รูปสลิปโอนเงินที่ชัดเจน';
-        saveBtn.disabled = true; // บล็อกไม่ให้บันทึกถ้ารูปสลิปไม่มี QR
+        saveBtn.disabled = true;
         return;
       }
 
@@ -532,7 +544,7 @@ function scanSlip(e) {
         statusEl.className = 'slip-status err';
         statusEl.innerHTML = `❌ <strong>สลิปซ้ำ!</strong> สลิปใบนี้เคยถูกบันทึกไปแล้วเมื่อวันที่ ${thDate(duplicateEntry.date)} (ยอด ฿${fmt(duplicateEntry.amount)})`;
         toast('❌ สลิปซ้ำ! ไม่สามารถใช้ซ้ำได้');
-        saveBtn.disabled = true; // ล็อกปุ่มบันทึกทันที
+        saveBtn.disabled = true;
         return;
       }
 
@@ -586,6 +598,7 @@ function addEntry(){
   const slipImg = document.getElementById('fSlipImg').value;
 
   if(!d){ toast('เลือกวันที่ก่อน'); return; }
+  if(isPayMode && !qr){ toast('กรุณาแนบรูปสลิปโอนเงินก่อนบันทึก'); return; }
   if(a <= 0){ toast('กรุณาระบุจำนวนเงิน หรือแนบสลิป'); return; }
 
   // เช็คสลิปซ้ำอีกครั้งก่อนส่ง
@@ -643,6 +656,7 @@ function addEntry(){
 }
 
 function del(id){
+  if(isViewMode || isPayMode) return; // ป้องกันการลบในโหมด view และ pay
   if(!confirm('ลบรายการนี้ออกจากฐานข้อมูล?')) return;
   toast('กำลังลบ...');
   globalEntries = globalEntries.filter(e => String(e.id) !== String(id));
@@ -653,11 +667,19 @@ function del(id){
   fetch(url).then(() => toast('ลบออกจากคลาวด์แล้ว')).catch(() => toast('เครือข่ายขัดข้อง'));
 }
 
+function copyPayLink(){
+  const base = window.location.href.split('?')[0].split('#')[0];
+  const url = base + '?pay=1'; 
+  navigator.clipboard.writeText(url)
+    .then(()=> toast('คัดลอกลิงก์ให้พี่ส่งสลิป (?pay=1) 🔗'))
+    .catch(()=> prompt('คัดลอกลิงก์:', url));
+}
+
 function copyShareLink(){
   const base = window.location.href.split('?')[0].split('#')[0];
   const url = base + '?view=1'; 
   navigator.clipboard.writeText(url)
-    .then(()=> toast('คัดลอกลิงก์ (โหมดดูอย่างเดียว) 🔗'))
+    .then(()=> toast('คัดลอกลิงก์ดูอย่างเดียว (?view=1) 🔗'))
     .catch(()=> prompt('คัดลอกลิงก์:', url));
 }
 
