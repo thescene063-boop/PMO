@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ติดตามหนี้ — พี่โม</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<!-- เพิ่มไลบรารีสำหรับอ่าน QR Code บนรูปภาพ -->
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -13,18 +14,16 @@
   --text:#18181a;--text2:#6b6b68;--text3:#a8a8a4;
   --green:#0f9b6e;--green-bg:#e6f7f1;--green-dark:#0a7a57;
   --red:#d04040;--red-bg:#fdf0f0;--gold:#9a7200;--gold-bg:#fdf6e0;
-  --blue-bg:#e0f2fe; --blue-dark:#0369a1; --blue-border:#bae6fd;
 }
 body{font-family:'Sarabun',sans-serif;background:var(--bg);min-height:100vh;padding:2rem 1rem;color:var(--text)}
 .app{max-width:560px;margin:0 auto}
 
 .view-banner{
-  border-radius:14px; padding:12px 16px; margin-bottom:16px; display:none;
-  align-items:center; gap:10px; font-size:13px; font-weight:600;
+  background:var(--green-bg);border:1px solid #a0dac4;border-radius:14px;
+  padding:12px 16px;margin-bottom:16px;display:none;
+  align-items:center;gap:10px;font-size:13px;color:var(--green-dark);font-weight:600
 }
 .view-banner.on{display:flex}
-.banner-view { background:var(--green-bg); border:1px solid #a0dac4; color:var(--green-dark); }
-.banner-pay { background:var(--blue-bg); border:1px solid var(--blue-border); color:var(--blue-dark); }
 
 /* Hero */
 .hero{background:var(--card);border-radius:20px;border:1px solid var(--border);overflow:hidden;margin-bottom:16px}
@@ -71,7 +70,7 @@ body{font-family:'Sarabun',sans-serif;background:var(--bg);min-height:100vh;padd
 /* Expandable Details */
 .breakdown-details { padding-bottom: 12px; border-bottom: 1px dashed var(--border); }
 .breakdown-details summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: flex-start; }
-.breakdown-details summary::-webkit-details-marker { display: none; } 
+.breakdown-details summary::-webkit-details-marker { display: none; } /* ซ่อนลูกศร default */
 .summary-content { display: flex; justify-content: space-between; width: 100%; }
 .tap-hint { display: inline-block; font-size: 11px; color: var(--green-dark); background: var(--green-bg); padding: 2px 8px; border-radius: 99px; margin-top: 4px; font-weight: 600; }
 .details-content { margin-top: 10px; padding: 10px 12px; background: #fafaf8; border-radius: 10px; display: flex; flex-direction: column; gap: 8px; border: 1px solid var(--border); }
@@ -141,16 +140,10 @@ input::placeholder{color:var(--text3)}
 <body>
 <div class="app">
 
-  <!-- ป้ายโหมดดูอย่างเดียว (View Mode) -->
-  <div class="view-banner banner-view" id="viewBanner">
+  <!-- ป้าย View Banner (จะโผล่มาตอนคนอื่นเปิดลิงก์แบบดูอย่างเดียว) -->
+  <div class="view-banner" id="viewBanner">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-    โหมดดูอย่างเดียว — ไม่สามารถแก้ไขหรือเพิ่มรายการได้
-  </div>
-
-  <!-- ป้ายโหมดแจ้งชำระเงิน (Pay Mode) -->
-  <div class="view-banner banner-pay" id="payBanner">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-    โหมดแจ้งชำระเงิน — คุณสามารถแนบสลิปได้ แต่ลบประวัติไม่ได้
+    โหมดดูอย่างเดียว — ไม่สามารถแก้ไขรายการได้
   </div>
 
   <div class="hero">
@@ -283,19 +276,19 @@ input::placeholder{color:var(--text3)}
 
   <!-- Share -->
   <div class="card no-print" id="shareCard">
-    <div class="card-title"><span class="dot"></span>ส่งลิงก์ให้คนอื่น</div>
+    <div class="card-title"><span class="dot"></span>แชร์ให้พี่ดู</div>
     <div class="share-grid">
-      <button class="btn-share" onclick="copyLink('pay')">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-        ลิงก์ให้พี่โอน
+      <button class="btn-share" onclick="copyShareLink()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+        คัดลอกลิงก์เว็บ
       </button>
-      <button class="btn-share" onclick="copyLink('view')">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-        ลิงก์ดูอย่างเดียว
+      <button class="btn-share" onclick="window.print()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        พิมพ์ / PDF
       </button>
     </div>
     <p class="share-note">
-      ส่งลิงก์ <b>"ให้พี่โอน"</b> เพื่อให้พี่โมกรอกสลิปได้ (แต่ลบประวัติไม่ได้)
+      ลิงก์ที่แชร์จะเป็นโหมด "ดูได้อย่างเดียว" ปลอดภัยแน่นอน
     </p>
   </div>
 
@@ -305,35 +298,21 @@ input::placeholder{color:var(--text3)}
 
 <script>
 // ใส่ URL ของ Web App ตรงนี้ (อย่าลืมเปลี่ยนหลัง Deploy ใหม่ด้วยนะครับ)
-const API_URL = "https://script.google.com/macros/s/AKfycbx_WCRtJKr30aQRlxiHD9xqHAoMNYI07U9qm0ZNI0py1KaaCbXZe3CUSIzNMZecsOzQcw/exec"; 
+const API_URL = "https://script.google.com/macros/s/AKfycbxePsDPVokNSsFEkSrID9ssbwqhNC2NcfkDLRiK7K6P1rj51D-3ksOYe1Dr20fIF3kkKw/exec"; 
 
 const TOTAL = 63977;
 const fmt   = n => Number(n).toLocaleString('th-TH');
 let globalEntries = []; 
 
-// ตั้งค่าสิทธิ์การเข้าถึง
-let canEdit = true;   // สิทธิ์กดลบประวัติ
-let canSubmit = true; // สิทธิ์ส่งฟอร์มสลิป
-
+let isViewMode = false;
 function checkViewMode() {
   const urlParams = new URLSearchParams(window.location.search);
-  
-  // 1. โหมดดูอย่างเดียว (View Only)
   if(urlParams.get('view') === '1' || window.location.hash === '#view') {
-    canEdit = false;
-    canSubmit = false;
+    isViewMode = true;
     document.getElementById('formCard').style.display = 'none';
-    document.getElementById('shareCard').style.display = 'none'; // ซ่อนการ์ดแชร์ไม่ให้คนอื่นก๊อปต่อ
+    document.getElementById('shareCard').style.display = 'none';
     document.getElementById('viewBanner').classList.add('on');
-  } 
-  // 2. โหมดให้พี่โมกรอก (Pay Mode)
-  else if (urlParams.get('pay') === '1' || window.location.hash === '#pay') {
-    canEdit = false;
-    canSubmit = true;
-    document.getElementById('shareCard').style.display = 'none'; // ซ่อนการ์ดแชร์ไม่ให้พี่โมก๊อปต่อ
-    document.getElementById('payBanner').classList.add('on');
   }
-  // 3. ถ้าไม่มีพารามิเตอร์เลย = Admin (แก้ไขและลบได้ทุกอย่าง)
 }
 
 function thDate(str){
@@ -376,9 +355,7 @@ function renderList(entries, total){
   sorted.forEach(e => {
     runningPaid += e.amount;
     const remain = Math.max(0, total - runningPaid);
-    
-    // แสดงปุ่มลบ เฉพาะตอนที่เป็นโหมด Admin (canEdit = true)
-    const delBtn = canEdit ? `<button class="del-btn" onclick="del('${e.id}')" title="ลบ">✕</button>` : '';
+    const delBtn = isViewMode ? '' : `<button class="del-btn" onclick="del('${e.id}')" title="ลบ">✕</button>`;
     
     html += `<div class="entry-item">
       <div class="entry-main">
@@ -484,15 +461,11 @@ function del(id){
   fetch(url).then(() => toast('ลบออกจากคลาวด์แล้ว')).catch(() => toast('เครือข่ายขัดข้อง'));
 }
 
-// คัดลอกลิงก์ตามโหมดที่เลือก
-function copyLink(mode){
+function copyShareLink(){
   const base = window.location.href.split('?')[0].split('#')[0];
-  const url = base + '?' + mode + '=1'; 
-  
-  let msg = mode === 'pay' ? 'คัดลอกลิงก์ให้พี่โอนแล้ว 🔗' : 'คัดลอกลิงก์ดูอย่างเดียวแล้ว 🔗';
-  
+  const url = base + '?view=1'; 
   navigator.clipboard.writeText(url)
-    .then(()=> toast(msg))
+    .then(()=> toast('คัดลอกลิงก์ (โหมดดูอย่างเดียว) 🔗'))
     .catch(()=> prompt('คัดลอกลิงก์:', url));
 }
 
@@ -502,7 +475,6 @@ function toast(msg){
   setTimeout(()=>t.classList.remove('on'), 2500);
 }
 
-// ตรวจสอบโหมดตอนโหลดหน้าเว็บ
 checkViewMode();
 document.getElementById('fDate').value = new Date().toISOString().split('T')[0];
 loadData();
