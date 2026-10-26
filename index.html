@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ติดตามหนี้ — พี่โม</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<!-- เพิ่มไลบรารีสำหรับอ่าน QR Code บนรูปภาพ -->
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -70,7 +70,7 @@ body{font-family:'Sarabun',sans-serif;background:var(--bg);min-height:100vh;padd
 /* Expandable Details */
 .breakdown-details { padding-bottom: 12px; border-bottom: 1px dashed var(--border); }
 .breakdown-details summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: flex-start; }
-.breakdown-details summary::-webkit-details-marker { display: none; } /* ซ่อนลูกศร default */
+.breakdown-details summary::-webkit-details-marker { display: none; }
 .summary-content { display: flex; justify-content: space-between; width: 100%; }
 .tap-hint { display: inline-block; font-size: 11px; color: var(--green-dark); background: var(--green-bg); padding: 2px 8px; border-radius: 99px; margin-top: 4px; font-weight: 600; }
 .details-content { margin-top: 10px; padding: 10px 12px; background: #fafaf8; border-radius: 10px; display: flex; flex-direction: column; gap: 8px; border: 1px solid var(--border); }
@@ -87,6 +87,14 @@ input[type=date],input[type=number],input[type=text],input[type=file]{
 input:focus{outline:none;border-color:var(--green);background:#fff;box-shadow:0 0 0 3px rgba(15,155,110,.1)}
 input::placeholder{color:var(--text3)}
 
+.slip-status{
+  display:none;margin-bottom:12px;padding:10px 14px;border-radius:10px;
+  font-size:13px;font-weight:600;line-height:1.5
+}
+.slip-status.scanning{display:block;background:var(--gold-bg);color:var(--gold);border:1px solid #e0cc80}
+.slip-status.ok{display:block;background:var(--green-bg);color:var(--green-dark);border:1px solid #a0d8c4}
+.slip-status.err{display:block;background:var(--red-bg);color:var(--red);border:1px solid #f0b8b8}
+
 .btn-primary{
   width:100%;margin-top:12px;padding:13px;
   background:var(--green);color:#fff;border:none;border-radius:10px;
@@ -95,29 +103,50 @@ input::placeholder{color:var(--text3)}
 }
 .btn-primary:hover{background:var(--green-dark)}
 .btn-primary:active{transform:scale(.98)}
+.btn-primary:disabled{background:var(--text3);cursor:not-allowed}
 
 /* History Scroller */
-.history-scroll{
-  max-height: 450px;
-  overflow-y: auto;
-  padding-right: 4px;
-}
-.history-scroll::-webkit-scrollbar { width: 6px; }
-.history-scroll::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 10px; }
+.history-scroll{max-height:450px;overflow-y:auto;padding-right:4px}
+.history-scroll::-webkit-scrollbar{width:6px}
+.history-scroll::-webkit-scrollbar-thumb{background:var(--border2);border-radius:10px}
 
 /* Entries */
 .entry-item{border:1px solid var(--border);border-radius:14px;margin-bottom:8px;overflow:hidden;background:#fff}
 .entry-main{display:grid;grid-template-columns:82px 1fr auto auto;gap:10px;align-items:center;padding:12px 14px}
 .edate{font-size:12px;color:var(--text3);font-weight:500}
-.enote{font-size:14px;font-weight:600;color:var(--text)}
+.enote{font-size:14px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .ebal{font-size:11px;color:var(--text3);margin-top:2px}
 .eamt{font-size:16px;font-weight:700;color:var(--green);white-space:nowrap}
 .del-btn{background:none;border:none;cursor:pointer;color:var(--text3);padding:5px;border-radius:6px;font-size:14px;transition:all .15s}
 .del-btn:hover{color:var(--red);background:var(--red-bg)}
 
-.loading-state { text-align:center; padding: 2rem 0; color: var(--text3); font-size: 14px; }
-.loading-icon { display: inline-block; animation: spin 1s linear infinite; margin-bottom:10px; font-size:24px; }
-@keyframes spin { 100% { transform: rotate(360deg); } }
+.slip-btn{
+  display:inline-flex;align-items:center;gap:4px;
+  background:var(--green-bg);color:var(--green-dark);border:1px solid #a0d8c4;
+  padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600;cursor:pointer;
+  font-family:'Sarabun',sans-serif;transition:all .15s
+}
+.slip-btn:hover{background:var(--green);color:#fff}
+
+/* Modal ดูรูปสลิป */
+.slip-modal{
+  position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9998;
+  display:none;align-items:center;justify-content:center;padding:1rem
+}
+.slip-modal.on{display:flex}
+.slip-modal-box{
+  background:#fff;border-radius:16px;max-width:400px;width:100%;padding:1rem;
+  text-align:center;position:relative;max-height:90vh;overflow-y:auto
+}
+.slip-modal-box img{width:100%;height:auto;border-radius:10px;border:1px solid var(--border)}
+.slip-modal-close{
+  margin-top:10px;width:100%;padding:10px;border:none;border-radius:10px;
+  background:#18181a;color:#fff;font-family:'Sarabun',sans-serif;font-weight:600;cursor:pointer
+}
+
+.loading-state{text-align:center;padding:2rem 0;color:var(--text3);font-size:14px}
+.loading-icon{display:inline-block;animation:spin 1s linear infinite;margin-bottom:10px;font-size:24px}
+@keyframes spin{100%{transform:rotate(360deg)}}
 
 /* Share */
 .share-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
@@ -134,13 +163,12 @@ input::placeholder{color:var(--text3)}
 .toast{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);background:#18181a;color:#fff;padding:10px 22px;border-radius:99px;font-size:13px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .25s;white-space:nowrap;z-index:9999;font-family:'Sarabun',sans-serif}
 .toast.on{opacity:1}
 
-@media print{body{background:#fff;padding:0}.no-print{display:none!important}.card,.hero{border:1px solid #ddd;margin-bottom:12px}.history-scroll{max-height:none;overflow:visible;}}
+@media print{body{background:#fff;padding:0}.no-print{display:none!important}.card,.hero{border:1px solid #ddd;margin-bottom:12px}.history-scroll{max-height:none;overflow:visible}}
 </style>
 </head>
 <body>
 <div class="app">
 
-  <!-- ป้าย View Banner (จะโผล่มาตอนคนอื่นเปิดลิงก์แบบดูอย่างเดียว) -->
   <div class="view-banner" id="viewBanner">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
     โหมดดูอย่างเดียว — ไม่สามารถแก้ไขรายการได้
@@ -184,12 +212,10 @@ input::placeholder{color:var(--text3)}
   <div class="card">
     <div class="card-title"><span class="dot"></span>รายละเอียดหนี้ตั้งต้น (รวม ฿63,977)</div>
     <div class="debt-breakdown">
-      
       <div class="breakdown-item">
         <div>เงินสดพี่ปุ้ย</div>
         <div class="b-amt">฿6,500</div>
       </div>
-
       <div class="breakdown-item">
         <div>
           ค่าบ้าน
@@ -197,7 +223,6 @@ input::placeholder{color:var(--text3)}
         </div>
         <div class="b-amt">฿25,000</div>
       </div>
-
       <details class="breakdown-details">
         <summary>
           <div class="summary-content">
@@ -217,17 +242,14 @@ input::placeholder{color:var(--text3)}
           <div class="sub-item"><span>ค่าเสื้อของพี่</span><span>฿997</span></div>
         </div>
       </details>
-
       <div class="breakdown-item">
         <div>เงินสดออมที่บอสออกก่อน</div>
         <div class="b-amt">฿3,150</div>
       </div>
-
       <div class="breakdown-item">
         <div>ค่าไฟบ้านดิอัลบานี</div>
         <div class="b-amt">฿3,020</div>
       </div>
-
       <div class="breakdown-item">
         <div>
           ค่าปิดจบธนาคาร + คืนประกันมอไซ
@@ -235,29 +257,31 @@ input::placeholder{color:var(--text3)}
         </div>
         <div class="b-amt">฿15,000</div>
       </div>
-
     </div>
   </div>
 
-  <!-- Form (อัปเดตสำหรับแนบสลิป) -->
+  <!-- Form บันทึกและสแกนสลิป -->
   <div class="card no-print" id="formCard">
     <div class="card-title"><span class="dot"></span>บันทึกและแนบสลิปชำระเงิน</div>
     
     <div class="field" style="margin-bottom:12px;">
-      <label>แนบรูปสลิปโอนเงิน (เพื่อตรวจสอบอัตโนมัติ)</label>
+      <label>แนบรูปสลิปโอนเงิน (สแกน QR + เช็คสลิปซ้ำ + เก็บรูปสลิปอัตโนมัติ)</label>
       <input type="file" id="fSlip" accept="image/*" onchange="scanSlip(event)" style="background:#fff;">
       <canvas id="canvas" style="display:none;"></canvas>
     </div>
 
+    <div id="slipStatus" class="slip-status"></div>
+
     <div class="form-grid">
       <div class="field"><label>วันที่</label><input type="date" id="fDate"></div>
-      <div class="field"><label>จำนวน (฿)</label><input type="number" id="fAmt" placeholder="รอสแกนสลิป หรือกรอกเอง"></div>
+      <div class="field"><label>จำนวน (฿)</label><input type="number" id="fAmt" placeholder="สแกนสลิป หรือกรอกเอง"></div>
     </div>
 
     <input type="hidden" id="fQr">
+    <input type="hidden" id="fSlipImg">
 
     <div class="field" style="margin-top:10px;"><label>หมายเหตุ</label><input type="text" id="fNote" placeholder="เช่น โอน PromptPay"></div>
-    <button class="btn-primary" onclick="addEntry()">
+    <button class="btn-primary" id="saveBtn" onclick="addEntry()">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
       บันทึกไปที่คลาวด์
     </button>
@@ -294,17 +318,28 @@ input::placeholder{color:var(--text3)}
 
 </div>
 
+<!-- Popup สำหรับเปิดดูรูปสลิป -->
+<div class="slip-modal" id="slipModal" onclick="closeSlipModal()">
+  <div class="slip-modal-box" onclick="event.stopPropagation()">
+    <img id="slipModalImg" src="" alt="รูปสลิปโอนเงิน">
+    <button class="slip-modal-close" onclick="closeSlipModal()">ปิดหน้าต่าง</button>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
-// ใส่ URL ของ Web App ตรงนี้
+// 1. ใส่ URL ของ Google Apps Script Web App ตรงนี้
 const API_URL = "https://script.google.com/macros/s/AKfycbyOT0nvJSorxTXOEInPYON25v3ORRvckiT9rRGLyX7mI6E7XY2mplSYEsoi70ezJnp-/exec"; 
+
+// 2. คำค้นหาชื่อหรือเลขบัญชีผู้รับบนสลิป (เดชาวิชญ์ สีทำมา / 5114462097)
+const RECEIVER_KEYWORDS = ["เดชา", "วิชญ", "สีทำ", "DECHAWIT", "6209", "2097", "5114"];
 
 const TOTAL = 63977;
 const fmt   = n => Number(n || 0).toLocaleString('th-TH');
 let globalEntries = []; 
-
 let isViewMode = false;
+
 function checkViewMode() {
   const urlParams = new URLSearchParams(window.location.search);
   if(urlParams.get('view') === '1' || window.location.hash === '#view') {
@@ -317,12 +352,7 @@ function checkViewMode() {
 
 function thDate(str){
   if(!str) return '-';
-  const cleanStr = String(str).substring(0, 10); // ตัดเอาเฉพาะ YYYY-MM-DD ป้องกันบั๊ก NaN
-  const parts = cleanStr.split('-');
-  if(parts.length === 3) {
-    return `${parts[2]}/${parts[1]}/${parseInt(parts[0], 10) + 543}`;
-  }
-  const d = new Date(str);
+  const d = String(str).includes('T') ? new Date(str) : new Date(str + 'T00:00:00');
   if(isNaN(d)) return str;
   return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()+543}`;
 }
@@ -350,6 +380,18 @@ function updateStats(entries, total){
   else          { pill.textContent='กำลังชำระ';          pill.className='pill active' }
 }
 
+function viewSlip(id) {
+  const entry = globalEntries.find(e => String(e.id) === String(id));
+  if (!entry || !entry.slipImg) return;
+  document.getElementById('slipModalImg').src = entry.slipImg;
+  document.getElementById('slipModal').classList.add('on');
+}
+
+function closeSlipModal() {
+  document.getElementById('slipModal').classList.remove('on');
+  document.getElementById('slipModalImg').src = '';
+}
+
 function renderList(entries, total){
   const el = document.getElementById('entriesList');
   if(!Array.isArray(entries) || entries.length === 0) {
@@ -365,12 +407,13 @@ function renderList(entries, total){
     runningPaid += amt;
     const remain = Math.max(0, total - runningPaid);
     const delBtn = isViewMode ? '' : `<button class="del-btn" onclick="del('${e.id}')" title="ลบ">✕</button>`;
+    const slipBtn = e.slipImg ? `<button class="slip-btn" onclick="viewSlip('${e.id}')">🖼️ ดูสลิป</button>` : '';
     
     html += `<div class="entry-item">
       <div class="entry-main">
         <div class="edate">${thDate(e.date)}</div>
         <div>
-          <div class="enote">${e.note||'ชำระหนี้'}</div>
+          <div class="enote"><span>${e.note||'ชำระหนี้'}</span> ${slipBtn}</div>
           <div class="ebal">คงเหลือ ฿${fmt(remain)}</div>
         </div>
         <div class="eamt">+฿${fmt(amt)}</div>
@@ -400,73 +443,203 @@ async function loadData() {
     renderList(globalEntries, TOTAL);
   } catch (err) {
     toast('ดึงข้อมูลล้มเหลว');
-    document.getElementById('entriesList').innerHTML = `<div class="loading-state">❌ ไม่สามารถเชื่อมต่อฐานข้อมูลได้</div>`;
   }
 }
 
-// 🌐 ฟังก์ชันอ่าน QR จากรูปภาพสลิป
+// ย่อขนาดรูปสลิปเพื่อเก็บลง Google Sheets ได้โดยไม่เกินขนาดเซลล์
+function compressSlipImage(img) {
+  const maxDim = 550;
+  let w = img.width;
+  let h = img.height;
+  if (w > maxDim || h > maxDim) {
+    if (w > h) { h = Math.round(h * maxDim / w); w = maxDim; }
+    else       { w = Math.round(w * maxDim / h); h = maxDim; }
+  }
+  const c = document.createElement('canvas');
+  c.width = w;
+  c.height = h;
+  const ctx = c.getContext('2d');
+  ctx.drawImage(img, 0, 0, w, h);
+  let dataUrl = c.toDataURL('image/jpeg', 0.55);
+  if (dataUrl.length > 47000) {
+    dataUrl = c.toDataURL('image/jpeg', 0.38);
+  }
+  return dataUrl;
+}
+
+function extractAmountFromText(text) {
+  const matches = [...text.matchAll(/(\d{1,3}(?:,\d{3})*\.\d{2})/g)];
+  const amounts = matches
+    .map(m => parseFloat(m[1].replace(/,/g, '')))
+    .filter(n => n > 0 && n < 500000);
+  return amounts.length > 0 ? amounts[0] : null;
+}
+
+// 🌐 ฟังก์ชันสแกน QR Code + เช็คสลิปซ้ำ + อ่านชื่อและยอดเงิน
 function scanSlip(e) {
   const file = e.target.files[0];
-  if(!file) return;
-  toast('กำลังสแกน QR Code...');
+  const statusEl = document.getElementById('slipStatus');
+  const saveBtn = document.getElementById('saveBtn');
+  if(!file) {
+    statusEl.className = 'slip-status';
+    document.getElementById('fQr').value = '';
+    document.getElementById('fSlipImg').value = '';
+    saveBtn.disabled = false;
+    return;
+  }
+
+  statusEl.className = 'slip-status scanning';
+  statusEl.textContent = '⏳ กำลังสแกน QR Code และตรวจสอบสลิปซ้ำ...';
+  saveBtn.disabled = true;
+
   const reader = new FileReader();
   reader.onload = function(event) {
     const img = new Image();
-    img.onload = function() {
+    img.onload = async function() {
       const canvas = document.getElementById('canvas');
       const context = canvas.getContext('2d');
       canvas.width = img.width;
       canvas.height = img.height;
       context.drawImage(img, 0, 0, canvas.width, canvas.height);
       const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+
+      // 1. ตรวจ QR Code บนสลิป
       const code = jsQR(imageData.data, imageData.width, imageData.height);
-      if (code) {
-        document.getElementById('fQr').value = code.data;
-        toast('สแกนสำเร็จ กดบันทึกเพื่อตรวจสอบยอดกับธนาคาร');
-      } else {
+      if (!code || !code.data) {
         document.getElementById('fQr').value = '';
-        toast('❌ ไม่พบ QR Code บนรูปภาพ');
+        document.getElementById('fSlipImg').value = '';
+        statusEl.className = 'slip-status err';
+        statusEl.textContent = '❌ ไม่พบ QR Code บนรูปภาพ กรุณาใช้รูปสลิปโอนเงินที่ชัดเจน';
+        saveBtn.disabled = true; // บล็อกไม่ให้บันทึกถ้ารูปสลิปไม่มี QR
+        return;
       }
+
+      const qrData = code.data.trim();
+      if (qrData.length < 30 || !qrData.includes('TH')) {
+        document.getElementById('fQr').value = '';
+        document.getElementById('fSlipImg').value = '';
+        statusEl.className = 'slip-status err';
+        statusEl.textContent = '❌ QR Code นี้ไม่ใช่สลิปโอนเงินของธนาคาร';
+        saveBtn.disabled = true;
+        return;
+      }
+
+      // 2. เช็คทันทีว่าสลิปใบนี้เคยอัปโหลดไปแล้วหรือยัง!
+      const duplicateEntry = globalEntries.find(item => item.qr && String(item.qr).trim() === qrData);
+      if (duplicateEntry) {
+        document.getElementById('fQr').value = '';
+        document.getElementById('fSlipImg').value = '';
+        statusEl.className = 'slip-status err';
+        statusEl.innerHTML = `❌ <strong>สลิปซ้ำ!</strong> สลิปใบนี้เคยถูกบันทึกไปแล้วเมื่อวันที่ ${thDate(duplicateEntry.date)} (ยอด ฿${fmt(duplicateEntry.amount)})`;
+        toast('❌ สลิปซ้ำ! ไม่สามารถใช้ซ้ำได้');
+        saveBtn.disabled = true; // ล็อกปุ่มบันทึกทันที
+        return;
+      }
+
+      // 3. ย่อรูปสลิปเพื่อเตรียมบันทึกลงฐานข้อมูล
+      document.getElementById('fQr').value = qrData;
+      document.getElementById('fSlipImg').value = compressSlipImage(img);
+
+      // 4. ใช้ OCR อ่านชื่อผู้รับและจำนวนเงินจากรูปสลิป
+      try {
+        const ocrResult = await Tesseract.recognize(img, 'tha+eng');
+        const rawText = ocrResult.data.text || '';
+        const cleanText = rawText.replace(/\s+/g, '');
+
+        const foundReceiver = RECEIVER_KEYWORDS.some(kw => cleanText.toUpperCase().includes(kw.toUpperCase()));
+        const detectedAmt = extractAmountFromText(rawText);
+
+        if (detectedAmt) {
+          document.getElementById('fAmt').value = detectedAmt;
+        }
+
+        if (foundReceiver && detectedAmt) {
+          statusEl.className = 'slip-status ok';
+          statusEl.innerHTML = `✅ ตรวจพบสลิปโอนเข้าบัญชี <strong>เดชาวิชญ์</strong><br>ยอดโอน <strong>฿${fmt(detectedAmt)}</strong> (ไม่ซ้ำ กดบันทึกได้เลย)`;
+          toast('สแกนสลิปสำเร็จ ✓');
+        } else if (detectedAmt) {
+          statusEl.className = 'slip-status ok';
+          statusEl.innerHTML = `✅ สลิปไม่ซ้ำ! อ่านยอดเงินได้ <strong>฿${fmt(detectedAmt)}</strong><br><span style="font-size:11px;font-weight:400;">(ตรวจสอบความถูกต้องของยอดเงินก่อนกดบันทึก)</span>`;
+          toast('อ่านยอดเงินสำเร็จ ✓');
+        } else {
+          statusEl.className = 'slip-status ok';
+          statusEl.innerHTML = `✅ สลิปไม่ซ้ำ!<br><span style="font-size:12px;font-weight:400;">(กรุณากรอกช่องจำนวนเงินตามสลิปแล้วกดบันทึก)</span>`;
+        }
+      } catch (ocrErr) {
+        statusEl.className = 'slip-status ok';
+        statusEl.textContent = '✅ สลิปไม่ซ้ำ! กรุณาตรวจสอบช่องจำนวนเงินแล้วกดบันทึก';
+      }
+
+      saveBtn.disabled = false;
     };
     img.src = event.target.result;
   };
   reader.readAsDataURL(file);
 }
 
-// 🌐 ฟังก์ชันบันทึกและตรวจสอบ
+// 🌐 ฟังก์ชันบันทึกข้อมูล + รูปสลิป ไปที่ Google Sheets
 function addEntry(){
   const d = document.getElementById('fDate').value;
   const a = parseFloat(document.getElementById('fAmt').value) || 0; 
   const n = document.getElementById('fNote').value.trim();
-  const qr = document.getElementById('fQr') ? document.getElementById('fQr').value : ""; 
+  const qr = document.getElementById('fQr').value.trim(); 
+  const slipImg = document.getElementById('fSlipImg').value;
 
   if(!d){ toast('เลือกวันที่ก่อน'); return; }
-  if(!qr && a <= 0){ toast('กรุณากรอกจำนวนเงิน หรือแนบสลิป'); return; }
+  if(a <= 0){ toast('กรุณาระบุจำนวนเงิน หรือแนบสลิป'); return; }
+
+  // เช็คสลิปซ้ำอีกครั้งก่อนส่ง
+  if (qr && globalEntries.some(item => item.qr && String(item.qr).trim() === qr)) {
+    toast('❌ สลิปซ้ำ! สลิปนี้เคยบันทึกไปแล้ว');
+    return;
+  }
   
-  toast('กำลังตรวจสอบและบันทึก...');
+  const saveBtn = document.getElementById('saveBtn');
+  saveBtn.disabled = true;
+  toast('กำลังบันทึกข้อมูลและรูปสลิป...');
   const newId = Date.now().toString();
   
-  const url = `${API_URL}?action=add&id=${newId}&date=${d}&amount=${a}&note=${encodeURIComponent(n)}&qr=${encodeURIComponent(qr)}`;
+  const payload = {
+    action: 'add',
+    id: newId,
+    date: d,
+    amount: a,
+    note: n,
+    qr: qr,
+    slipImg: slipImg
+  };
   
-  fetch(url)
+  fetch(API_URL, {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  })
     .then(res => res.json())
     .then(data => {
+      saveBtn.disabled = false;
       if(data.error) {
          toast('❌ ' + data.error); 
+         const statusEl = document.getElementById('slipStatus');
+         statusEl.className = 'slip-status err';
+         statusEl.textContent = '❌ ' + data.error;
       } else {
          const finalAmount = Number(data.amount) || a;
          toast('บันทึกเรียบร้อย ยอด ' + fmt(finalAmount) + ' ฿ ✓');
          document.getElementById('fAmt').value = '';
          document.getElementById('fNote').value = '';
          document.getElementById('fSlip').value = '';
-         if(document.getElementById('fQr')) document.getElementById('fQr').value = '';
+         document.getElementById('fQr').value = '';
+         document.getElementById('fSlipImg').value = '';
+         document.getElementById('slipStatus').className = 'slip-status';
          
-         globalEntries.push({ id: newId, date: d, amount: finalAmount, note: n });
+         globalEntries.push({ id: newId, date: d, amount: finalAmount, note: n, qr: qr, slipImg: slipImg });
          updateStats(globalEntries, TOTAL);
          renderList(globalEntries, TOTAL);
       }
     })
-    .catch(() => toast('เครือข่ายขัดข้อง/URL ไม่ถูกต้อง'));
+    .catch(() => {
+      saveBtn.disabled = false;
+      toast('เครือข่ายขัดข้อง/อย่าลืม Deploy Apps Script เป็นเวอร์ชันใหม่');
+    });
 }
 
 function del(id){
